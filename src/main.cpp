@@ -1,3 +1,7 @@
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
 #include <iostream>
 #include <unordered_map>
 #include <vector>
@@ -130,27 +134,28 @@ void test_BCM(int mem_in_byte, int _switch_num)
     long long estimate_sum = 0;
     for (int i = 0; i < testcycles; ++i)
     {
-        timespec time1, time2, time3, time4;
-        long long resns;
+        LARGE_INTEGER frequency;        // ticks per second
+        LARGE_INTEGER t1, t2, t3, t4;  // ticks
+        long long resns;               // 纳秒计时结果
+        QueryPerformanceFrequency(&frequency);
 
         Sketch *bcm;
         bcm=Choose_Sketch(w,d, i * 100,switch_num);
-        clock_gettime(CLOCK_MONOTONIC, &time1);
+        QueryPerformanceCounter(&t1);
         for (auto key : items){
-            // puts("alb");
             bcm->Insert(key.c_str());
-            // bcm.check();
         }
-        clock_gettime(CLOCK_MONOTONIC, &time2);
+        QueryPerformanceCounter(&t2);
 
-        clock_gettime(CLOCK_MONOTONIC, &time3);
+        QueryPerformanceCounter(&t3);
         for (auto pr : freq)
             estimate_sum += bcm->Query(pr.first.c_str());
-        clock_gettime(CLOCK_MONOTONIC, &time4);
+        QueryPerformanceCounter(&t4);
 
-        resns = (long long)(time2.tv_sec - time1.tv_sec) * 1000000000LL + (time2.tv_nsec - time1.tv_nsec);
+        // 转换为纳秒
+        resns = (t2.QuadPart - t1.QuadPart) * 1000000000LL / frequency.QuadPart;
         throughput_i += (double)1000.0 * item_num / resns;
-        resns = (long long)(time4.tv_sec - time3.tv_sec) * 1000000000LL + (time4.tv_nsec - time3.tv_nsec);
+        resns = (t4.QuadPart - t3.QuadPart) * 1000000000LL / frequency.QuadPart;
         throughput_o += (double)1000.0 * flow_num / resns;
         for (auto pr : freq)
             ret_f[i].push_back(bcm->Query(pr.first.c_str()));
@@ -166,7 +171,7 @@ void test_BCM(int mem_in_byte, int _switch_num)
 int main()
 {
 //    readFile_CAIDA("D:\\TailoredSketch_Code\\Data\\01_bin_str.dat",12);
-    readFile_CAIDA("D:\\TailoredSketch_Code\\\\Data\\zipf_example.dat",10);
+    readFile_CAIDA("..\\Data\\zipf_example.dat",10);
     int mem_in_byte_start = 0.2 * (1<<20);
     int mem_in_byte_end = 1<<20 ;
     int mem_in_byte;
@@ -209,4 +214,3 @@ int main()
 
     return 0;
 }
-
